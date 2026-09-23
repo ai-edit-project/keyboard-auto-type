@@ -23,7 +23,7 @@ template <typename T> class auto_release {
     }
 
     auto_release &operator=(auto_release &&other) noexcept {
-        resource_ = other.resource;
+        resource_ = other.resource_;
         other.resource_ = nullptr;
         return *this;
     }
