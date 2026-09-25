@@ -66,7 +66,7 @@ if(APPLE)
 elseif(WIN32)
     target_link_libraries(${PROJECT_NAME}
         PRIVATE
-        "Shlwapi.lib"
+        "shlwapi"
     )
 else()
     include(FindX11)
@@ -97,7 +97,7 @@ else()
     )
 endif()
 
-if(WIN32)
+if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W4 /WX /permissive-)
 else()
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -Werror)
