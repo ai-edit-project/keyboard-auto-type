@@ -268,13 +268,16 @@ bool AutoType::show_window(const AppWindow &window) {
     auto current_thread_id = GetCurrentThreadId();
     auto win_thread_id = GetWindowThreadProcessId(current_window, nullptr);
 
-    if (current_thread_id != win_thread_id) {
+    auto attach = win_thread_id && current_thread_id != win_thread_id;
+
+    // Changing the timeout only for the current session. SPIF_SENDWININICHANGE is not used
+    // because it waits for all windows to handle the change, and this can hang.
+    DWORD lock_timeout = 0;
+    if (attach) {
         AttachThreadInput(current_thread_id, win_thread_id, TRUE);
 
-        DWORD lock_timeout = 0;
         SystemParametersInfo(SPI_GETFOREGROUNDLOCKTIMEOUT, 0, &lock_timeout, 0);
-        SystemParametersInfo(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, nullptr,
-                             SPIF_SENDWININICHANGE | SPIF_UPDATEINIFILE);
+        SystemParametersInfo(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, nullptr, 0);
 
         AllowSetForegroundWindow(ASFW_ANY);
     }
@@ -282,10 +285,9 @@ bool AutoType::show_window(const AppWindow &window) {
     auto result = SetForegroundWindow(static_cast<HWND>(
         ULongToHandle(static_cast<unsigned long>(window.window_id)))); // NOLINT(google-runtime-int)
 
-    if (current_thread_id != win_thread_id) {
-        DWORD lock_timeout = 0;
-        SystemParametersInfo(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, &lock_timeout,
-                             SPIF_SENDWININICHANGE | SPIF_UPDATEINIFILE);
+    if (attach) {
+        // Restoring the saved timeout.
+        SystemParametersInfo(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, UIntToPtr(lock_timeout), 0);
         AttachThreadInput(current_thread_id, win_thread_id, FALSE);
     }
     return result;
